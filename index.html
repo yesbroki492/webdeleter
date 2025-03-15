@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Deleter</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e1e2e, #252538);
+            color: white;
+            overflow: hidden;
+            opacity: 0; /* Start invisible */
+            animation: fadeIn 0.8s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 10px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .delete-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: linear-gradient(135deg, #ff4d4d, #ff1a1a);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: linear-gradient(135deg, #ff1a1a, #b30000);
+        }
+
+        .message {
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .message.visible {
+            opacity: 1;
+        }
+
+        /* Confirmation Popup */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s;
+        }
+
+        .popup {
+            background: #2a2a3a;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .popup button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .popup .confirm {
+            background: #ff1a1a;
+            color: white;
+        }
+
+        .popup .cancel {
+            background: #555;
+            color: white;
+        }
+
+        .popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-overlay.active .popup {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🚀 Webhook Deleter</h1>
+        <input type="text" id="webhookUrl" placeholder="Enter webhook URL">
+        <button class="delete-btn" onclick="showPopup()">Delete Webhook</button>
+        <p class="message" id="message"></p>
+    </div>
+
+    <!-- Confirmation Popup -->
+    <div class="popup-overlay" id="popupOverlay">
+        <div class="popup">
+            <p>⚠️ Are you sure you want to delete this webhook?</p>
+            <button class="confirm" onclick="deleteWebhook()">Yes, Delete</button>
+            <button class="cancel" onclick="closePopup()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        function showPopup() {
+            document.getElementById("popupOverlay").classList.add("active");
+        }
+
+        function closePopup() {
+            document.getElementById("popupOverlay").classList.remove("active");
+        }
+
+        function deleteWebhook() {
+            closePopup(); // Close popup before deletion
+
+            const url = document.getElementById("webhookUrl").value;
+            const messageBox = document.getElementById("message");
+
+            if (!url) {
+                messageBox.innerText = "⚠️ Please enter a webhook URL!";
+                messageBox.style.color = "yellow";
+                messageBox.classList.add("visible");
+                return;
+            }
+
+            fetch(url, { method: "DELETE" })
+                .then(response => {
+                    if (response.ok) {
+                        messageBox.innerText = "✅ Webhook deleted successfully!";
+                        messageBox.style.color = "lightgreen";
+                    } else {
+                        throw new Error("Failed to delete webhook");
+                    }
+                })
+                .catch(error => {
+                    messageBox.innerText = "❌ Error deleting webhook!";
+                    messageBox.style.color = "red";
+                })
+                .finally(() => {
+                    messageBox.classList.add("visible");
+                    setTimeout(() => messageBox.classList.remove("visible"), 3000);
+                });
+        }
+    </script>
+
+</body>
+</html>
