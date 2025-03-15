@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Sender</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+            overflow: hidden;
+            animation: fadeIn 1s ease-in-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 90%;
+            max-width: 500px;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #ff7e5f;
+            letter-spacing: 2px;
+        }
+
+        p {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #d4d4d4;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            transition: background 0.3s ease;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .send-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ff7e5f, #ff6a00);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .send-btn:hover {
+            background: linear-gradient(135deg, #ff6a00, #ff7e5f);
+            transform: translateY(-5px);
+        }
+
+        .send-btn:disabled {
+            background: #b0b0b0;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 400;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .message.visible {
+            opacity: 1;
+        }
+
+        .go-back-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .go-back-btn:hover {
+            background: linear-gradient(135deg, #0072ff, #00c6ff);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🌐 Webhook Sender</h1>
+        <p>Enter the webhook URL, message, and the number of sends:</p>
+
+        <!-- Webhook URL Input -->
+        <input type="text" id="webhookUrl" placeholder="Enter webhook URL">
+
+        <!-- Amount of Sends Input -->
+        <input type="number" id="amountOfSends" placeholder="Enter amount of sends" min="1">
+
+        <!-- Message Text Input -->
+        <input type="text" id="messageText" placeholder="Enter your message">
+
+        <!-- Send Button -->
+        <button class="send-btn" id="sendButton" onclick="sendWebhook()">Send Webhook</button>
+
+        <!-- Message Box to Show Status -->
+        <p class="message" id="message"></p>
+
+        <!-- Go Back Button -->
+        <button class="go-back-btn" onclick="goBack()">Go Back</button>
+    </div>
+
+    <script>
+        let cooldown = false;  // Track cooldown state
+
+        function sendWebhook() {
+            // If cooldown is active, prevent the button from being pressed
+            if (cooldown) {
+                return;
+            }
+
+            const url = document.getElementById("webhookUrl").value;
+            const amount = document.getElementById("amountOfSends").value;
+            const messageText = document.getElementById("messageText").value;
+            const messageBox = document.getElementById("message");
+            const sendButton = document.getElementById("sendButton");
+
+            // Basic validation
+            if (!url || !amount || !messageText) {
+                messageBox.innerText = "⚠️ Please fill all fields!";
+                messageBox.style.color = "yellow";
+                messageBox.classList.add("visible");
+                return;
+            }
+
+            if (amount <= 0) {
+                messageBox.innerText = "⚠️ Amount of sends must be a positive number!";
+                messageBox.style.color = "yellow";
+                messageBox.classList.add("visible");
+                return;
+            }
+
+            // Start cooldown and disable the button
+            cooldown = true;
+            sendButton.disabled = true;
+            messageBox.innerText = `⏳ Sending ${amount} messages...`;
+            messageBox.style.color = "lightblue";
+            messageBox.classList.add("visible");
+
+            let sendsCompleted = 0;
+
+            for (let i = 0; i < amount; i++) {
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ content: messageText })
+                })
+                .then(response => {
+                    sendsCompleted++;
+                    if (sendsCompleted === amount) {
+                        messageBox.innerText = `✅ Successfully sent ${amount} messages!`;
+                        messageBox.style.color = "lightgreen";
+                    }
+                })
+                .catch(error => {
+                    sendsCompleted++;
+                    if (sendsCompleted === amount) {
+                        messageBox.innerText = "❌ Error sending messages!";
+                        messageBox.style.color = "red";
+                    }
+                });
+            }
+
+            // Cooldown reset after 5 seconds
+            setTimeout(() => {
+                cooldown = false;
+                sendButton.disabled = false; // Re-enable the button
+            }, 5000);
+        }
+
+        // Go back to the index page
+        function goBack() {
+            window.location.href = 'index.html';
+        }
+    </script>
+
+</body>
+</html>
